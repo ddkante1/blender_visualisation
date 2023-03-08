@@ -5,13 +5,13 @@ from mathutils import Matrix, Euler, Quaternion
 import os
 
 # Input parameters
-t_0 = 9000000
-t_f = 9050000
-timestep = 50000
+t_0 = 0000
+t_f = 0000
+timestep = 2000
 
-x3dpath = "/users/Daviduva/Blender/rect_channel/x3d/"
-renderpath = "/users/Daviduva/Blender/rect_channel/renders/"
-final_render_filename = "RBCS_render"
+x3dpath = "../../examples/oneCellShear/tmp/x3d/"
+renderpath = "../../examples/oneCellShear/tmp/renders/"
+final_render_filename = "oneCellShear_render"
 render_engine = "CYCLES"  # also try 'BLENDER_EEVEE'
 
 
@@ -319,10 +319,10 @@ for time in range(t_0, t_f + timestep, timestep):
         time).zfill(12) + '.png'
 
     # Turn on denoiser if using the CYCLES engine
-    #if bpy.context.scene.render.engine == 'CYCLES':
-    #    bpy.context.scene.cycles.samples = 150
-    #    bpy.context.scene.cycles.use_denoising = True
-    #    bpy.context.scene.cycles.denoiser = 'NLM'
+    if bpy.context.scene.render.engine == 'CYCLES':
+        bpy.context.scene.cycles.samples = 150
+        bpy.context.scene.cycles.use_denoising = True
+        bpy.context.scene.cycles.denoiser = 'NLM'
 
     # Preform rendering
     bpy.ops.render.render(use_viewport=True, write_still=True)
