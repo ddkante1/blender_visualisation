@@ -26,7 +26,7 @@ function do_work {
   [[ -z $erase_things ]] || ( echo "Clearing XDMF files..."; rm -rf *.xmf )
 
   # Fluid
-  ${python_c} ${scriptsDir}/FluidHDF5.py; 
+  # ${python_c} ${scriptsDir}/FluidHDF5.py; 
 
   for dir in ./hdf5/*/
   do
@@ -37,7 +37,7 @@ function do_work {
         continue
       fi
       if [ $name == "Fluid_PRE" ]; then
-        ${python_c} ${scriptsDir}/FluidHDF5.py Fluid_PRE; 
+        # ${python_c} ${scriptsDir}/FluidHDF5.py Fluid_PRE; 
         continue
       fi
       if [ $name == "CEPAC" ]; then

@@ -1,9 +1,6 @@
 #!/usr/bin/env python3
-import sys
 import os
 from glob import glob
-import errno
-import numpy as np
 import h5py as h5
 
 

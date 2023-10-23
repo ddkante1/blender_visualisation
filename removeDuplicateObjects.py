@@ -1,6 +1,46 @@
 import bpy
 import math
 import mathutils
+import os
+import bmesh
+from mathutils.kdtree import KDTree
+
+
+def assign_material(material_name, collection):
+    material = bpy.data.materials.get(material_name)
+
+    for obj in collection.objects:
+        # Check if the object can have materials
+        if obj.type == 'MESH':
+            # If object doesn't have any materials, add a slot
+            if len(obj.data.materials) == 0:
+                obj.data.materials.append(None)
+            # Assign the material to the first slot
+            obj.data.materials[0] = material
+
+
+def remove_collection(collection_name):
+    # Get the collection
+    collection = bpy.data.collections.get(collection_name)
+    # Remove the collection if it exists
+    if collection:
+        # Unlink the collection from the scene
+        for scene in bpy.context.blend_data.scenes:
+            if collection.name in scene.collection.children:
+                scene.collection.children.unlink(collection)
+        # Remove the collection from the data-blocks
+        bpy.data.collections.remove(collection)
+        print(f"Collection '{collection_name}' removed.")
+    else:
+        print(f"Collection '{collection_name}' not found.")
+
+
+def remove_active_collections():
+    print("Removing Collections: ")
+    remove_collection("RBC_Collection")
+    remove_collection("PLT_Collection")
+    remove_collection("PLT_PRE_Collection")
+    remove_collection("RBC_PRE_Collection")
 
 
 def create_collection(name):
@@ -59,6 +99,33 @@ def remove_duplicates(objects):
     bpy.ops.object.delete()
 
 
+def remove_duplicates_kd_tree(objects):
+    # Build a KDTree
+    size = len(objects)
+    kd = KDTree(size)
+    
+    for i, obj in enumerate(objects):
+        kd.insert(obj.location, i)
+    kd.balance()
+
+    # Find close objects
+    to_remove = set()
+    for i, obj in enumerate(objects):
+        # search for close objects, 1.1 ensures you get objects slightly further than just the exact point.
+        for _, index, _ in kd.find_range(obj.location, 1.1):
+            if i != index:  # Don't remove the object being checked
+                to_remove.add(objects[index])
+                
+    # Select and remove
+    bpy.ops.object.select_all(action='DESELECT')
+    for obj in to_remove:
+        obj.select_set(True)
+
+    bpy.ops.object.delete()
+
+    return {'FINISHED'}
+
+
 def seperate_by_loose_parts(objects):
     try:
         bpy.ops.object.mode_set(mode='EDIT')
@@ -85,34 +152,70 @@ def set_origin_to_center(objects):
     bpy.ops.object.origin_set(type='ORIGIN_CENTER_OF_MASS')
 
 
+remove_active_collections()
+
+print("Start Full Import")
+
 scale_factor = 1000000.0
-collection_name = "PLT_Collection"
-create_collection(collection_name)
-collection = select_collection(collection_name)
 
-print("Starting")
+directory_path = "/mnt/d/UserProjects/Joey/CGI/BloodCells/PuncturedVesselAllTimesteps/tmp_samepress_50um_Re075/x3d"
+win_directory_path = "D:/UserProjects/Joey/CGI/BloodCells/PuncturedVesselAllTimesteps/tmp_samepress_50um_Re075/x3d"
 
-file_path = "D:/UserProjects/Joey/Rendering/BloodCells/Simulation_One/x3d/PLT.000002060000.x3d"
-object = load_file(file_path)
+curr_path = directory_path
 
-print("Object Loaded")
+files = os.listdir(curr_path)
 
-scale_objects(collection.objects, scale_factor)
+material_tuples = [("RBC", "RBC_Mat"), ("RBC_PRE", "RBC_Mat"), ("PLT", "PLT_mat"), ("PLT_PRE", "PLT_mat")]
 
-print("Scaled Data")
+for file_name in files:
 
-remove_lights_and_cameras(collection.objects)
+    file_path = os.path.join(curr_path, file_name)
 
-print("Removing Lights")
+    print(f"Importing {file_path}")
 
-seperate_by_loose_parts(collection.objects)
+    prefix = file_name.split('.')
 
-print("Seperated By Loose Parts")
+    print(f"Prefix: {prefix[0]}")
 
-set_origin_to_center(collection.objects)
+    collection_name = f"{prefix[0]}_Collection"
 
-print("Set Origin To Center")
+    create_collection(collection_name)
 
-remove_duplicates(collection.objects)
+    collection = select_collection(collection_name)
 
-print("Remove Duplicates")
+    object = load_file(file_path)
+
+    print("Object Loaded")
+
+    scale_objects(collection.objects, scale_factor)
+
+    print("Scaled Data")
+
+    remove_lights_and_cameras(collection.objects)
+
+    print("Removing Lights")
+
+    seperate_by_loose_parts(collection.objects)
+
+    print("Seperated By Loose Parts")
+
+    set_origin_to_center(collection.objects)
+
+    print("Done Setting Origin To Center")
+
+    remove_duplicates_kd_tree(collection.objects)
+
+    print("Removed Duplicates")
+
+    # Find the tuple with the key
+    found_mat_tuple = next((material_tuple for material_tuple in material_tuples if material_tuple[0] == prefix[0]), None)
+
+    print(f"Assigning Material: {found_mat_tuple[1]} to collection {collection_name}")
+
+    assign_material(found_mat_tuple[1], collection)
+
+    print("Assigned Materials")
+
+print("DONE!")
+
+bpy.ops.wm.save_mainfile()
