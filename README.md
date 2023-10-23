@@ -41,3 +41,18 @@ start:
 ./run_pipeline.sh
 ```
 
+## Extra
+
+Notice that if running on an external server - start with no hangup. Else the process will halt as soon as you disconnect. 
+```
+nohup ./run_pipeline.sh
+```
+
+Also notice that for a headless server we run Blender and Paraview in [XVFB](https://en.wikipedia.org/wiki/Xvfb)
+
+```
+xvfb-run [command]
+```
+
+Also notice there is a folder "OnServer" showing what was used to run on the server.
+
